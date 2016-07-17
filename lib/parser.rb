@@ -1,23 +1,18 @@
-Node = Struct.new(:name, :attributes, :children)
+require 'ostruct'
+Tag = Struct.new(:type, :index, :children)
+
+#Node = Struct.new(:name, :attributes, :children)
 TNode = Struct.new(:contents)
 
 
-class Tag
-  attr_reader :type, :index, :attributes
-
-  def initialize(type, index)
-    @type = type
-    @index = index
-    @attributes = "nil"
-  end
-end
-
 class HTMLParser
-  attr_reader :main_tag, :attributes
+  attr_reader :main_tag
+  attr_accessor :attributes
 
   def initialize(html = nil)
     @stack = []
     @html = html
+    @attributes = ""
   end
 
   def fill_stack
@@ -57,32 +52,22 @@ class HTMLParser
   end
 
   def parse(string)
-    data = /\s/.match(string)
-    if data != nil
-      pre = data.pre_match
-      post = data.post_match.split(/(.*?)\s*=*'/)
-      new_array = []
-      new_post = post.map {|attribute| new_array << attribute.strip if !attribute.empty? }
-      new_array = [pre[1..-1], new_array[0..-2]]
-      @tag = new_array[0]
-      @attributes = new_array[1].each_slice(2).to_a
-    else
-      @main_tag = /<(.*)>/.match(string)[1]
-    end
+   matched =  /<.*?\s(.*?)\s*="(.*?)">/.match(string)
+   @attributes = [matched[1], matched[2]] if matched != nil
   end
 
   def find_next_tag(html)
     match = /<.*?>/.match(html)
+    @attributes = parse(match[0])
+    p @attributes
     loc = html =~ /<.*?>/
-    tag = Tag.new(match[0], loc)
-    parse(match[0])
-    set_tag_attributes(tag)
+    tag = set_tag_attributes(match[0], loc, @attributes) if @attributes != nil
+    tag = OpenStruct.new(type: match[0], index: loc) if @attributes == nil
+    tag
   end
 
-  def set_tag_attributes(tag)
-    @attributes.each do |attribute|
-      tag.instance_variable_set("@#{attribute[0]}", attribute[1])
-    end
+  def set_tag_attributes(tag, loc, attributes)
+      tag = OpenStruct.new(type: tag, index: loc, attributes[0] => attributes[1])
   end
 
   def matching_tag(tag)
