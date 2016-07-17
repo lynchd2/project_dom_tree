@@ -1,9 +1,19 @@
 Node = Struct.new(:name, :attributes, :children)
 TNode = Struct.new(:contents)
 
-Tag = Struct.new(:type, :index)
+
+class Tag
+  attr_reader :type, :index, :attributes
+
+  def initialize(type, index)
+    @type = type
+    @index = index
+    @attributes = "nil"
+  end
+end
 
 class HTMLParser
+  attr_reader :main_tag, :attributes
 
   def initialize(html = nil)
     @stack = []
@@ -46,10 +56,33 @@ class HTMLParser
     end
   end
 
+  def parse(string)
+    data = /\s/.match(string)
+    if data != nil
+      pre = data.pre_match
+      post = data.post_match.split(/(.*?)\s*=*'/)
+      new_array = []
+      new_post = post.map {|attribute| new_array << attribute.strip if !attribute.empty? }
+      new_array = [pre[1..-1], new_array[0..-2]]
+      @tag = new_array[0]
+      @attributes = new_array[1].each_slice(2).to_a
+    else
+      @main_tag = /<(.*)>/.match(string)[1]
+    end
+  end
+
   def find_next_tag(html)
     match = /<.*?>/.match(html)
     loc = html =~ /<.*?>/
-    Tag.new(match[0], loc)
+    tag = Tag.new(match[0], loc)
+    parse(match[0])
+    set_tag_attributes(tag)
+  end
+
+  def set_tag_attributes(tag)
+    @attributes.each do |attribute|
+      tag.instance_variable_set("@#{attribute[0]}", attribute[1])
+    end
   end
 
   def matching_tag(tag)
