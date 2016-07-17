@@ -1,5 +1,5 @@
 require 'ostruct'
-Tag = Struct.new(:type, :index, :children)
+Tag = Struct.new(:type, :content, :index, :children)
 
 #Node = Struct.new(:name, :attributes, :children)
 TNode = Struct.new(:contents)
@@ -23,7 +23,7 @@ class HTMLParser
         @stack << TNode.new(contents)
       end
       @stack << cur_tag
-      new_index = cur_tag.index + cur_tag.type.length
+      new_index = cur_tag.index + cur_tag.content.length
       @html = @html[new_index..-1]
     end
   end
@@ -44,7 +44,7 @@ class HTMLParser
   def print_stack_values
     @stack.each do |val|
       if val.is_a?(Tag)
-        puts "#{val.type}"
+        puts "#{val.content}"
       elsif val.is_a?(TNode)
         puts "#{val.contents}"
       end
@@ -59,15 +59,17 @@ class HTMLParser
   def find_next_tag(html)
     match = /<.*?>/.match(html)
     @attributes = parse(match[0])
+    type = /<(.*?)\s/.match(match[0])
+    type = type[1] if type
     p @attributes
     loc = html =~ /<.*?>/
-    tag = set_tag_attributes(match[0], loc, @attributes) if @attributes != nil
-    tag = OpenStruct.new(type: match[0], index: loc) if @attributes == nil
+    tag = set_tag_attributes(type, match[0], loc, @attributes) if @attributes != nil
+    tag = OpenStruct.new(type: match[0], content: match[0], index: loc) if @attributes == nil
     tag
   end
 
-  def set_tag_attributes(tag, loc, attributes)
-      tag = OpenStruct.new(type: tag, index: loc, attributes[0] => attributes[1])
+  def set_tag_attributes(type, tag, loc, attributes)
+      tag = OpenStruct.new(type: type, content: tag, index: loc, attributes[0] => attributes[1])
   end
 
   def matching_tag(tag)
