@@ -1,12 +1,12 @@
 require 'ostruct'
-Tag = Struct.new(:type, :content, :index, :children)
+#Tag = Struct.new(:tag, :content, :index, :children, :parent)
 
 #Node = Struct.new(:name, :attributes, :children)
-TNode = Struct.new(:contents)
+TNode = Struct.new(:tag, :contents, :children, :parent)
 
 
 class HTMLParser
-  attr_reader :main_tag
+  attr_reader :main_tag, :stack
   attr_accessor :attributes
 
   def initialize(html = nil)
@@ -19,8 +19,8 @@ class HTMLParser
     until @html.length < 4
       cur_tag = find_next_tag(@html)
       if @stack.length > 1 && (cur_tag.index > 0)
-        contents = @html[0..cur_tag.index - 1]
-        @stack << TNode.new(contents)
+        contents = @html[0..cur_tag.index - 1].strip
+        @stack << TNode.new("text", contents, []) unless contents.length <= 1
       end
       @stack << cur_tag
       new_index = cur_tag.index + cur_tag.content.length
@@ -43,9 +43,11 @@ class HTMLParser
 
   def print_stack_values
     @stack.each do |val|
-      if val.is_a?(Tag)
+      if val.is_a?(TNode)
+        puts "#{val.contents}"
+      elsif val.is_a?(OpenStruct)
         puts "#{val.content}"
-      elsif val.is_a?(TNode)
+      else
         puts "#{val.contents}"
       end
     end
@@ -61,17 +63,21 @@ class HTMLParser
     @attributes = parse(match[0])
     type = /<(.*?)\s/.match(match[0])
     type = type[1] if type
-    p @attributes
     loc = html =~ /<.*?>/
-    tag = set_tag_attributes(type, match[0], loc, @attributes) if @attributes != nil
-    tag = OpenStruct.new(type: match[0], content: match[0], index: loc) if @attributes == nil
+    tag = set_tag_attributes(type, match[0], loc, @attributes, nil) if @attributes != nil
+    tag = OpenStruct.new(tag: match[0], content: match[0], index: loc, children: [], parent: nil) if @attributes == nil
     tag
   end
 
-  def set_tag_attributes(type, tag, loc, attributes)
-      tag = OpenStruct.new(type: type, content: tag, index: loc, attributes[0] => attributes[1])
+  def set_tag_attributes(type, tag, loc, attributes, parent)
+      if attributes[0] == "class"
+        attributes[0] = attributes[0] << "_attribute"
+      end
+      tag = OpenStruct.new(tag: "<" + type + ">", content: tag, index: loc, attributes[0] => attributes[1], children: [], parent: nil)
+      tag
   end
 
+###############################3
   def matching_tag(tag)
     chars = tag.chars
     chars.delete_at(1)
