@@ -23,7 +23,7 @@ class HTMLParser
         @stack << TNode.new("text", contents, []) unless contents.length <= 1
       end
       @stack << cur_tag
-      new_index = cur_tag.index + cur_tag.content.length
+      new_index = cur_tag.index + cur_tag.contents.length
       @html = @html[new_index..-1]
     end
   end
@@ -46,7 +46,7 @@ class HTMLParser
       if val.is_a?(TNode)
         puts "#{val.contents}"
       elsif val.is_a?(OpenStruct)
-        puts "#{val.content}"
+        puts "#{val.contents}"
       else
         puts "#{val.contents}"
       end
@@ -65,7 +65,7 @@ class HTMLParser
     type = type[1] if type
     loc = html =~ /<.*?>/
     tag = set_tag_attributes(type, match[0], loc, @attributes, nil) if @attributes != nil
-    tag = OpenStruct.new(tag: match[0], content: match[0], index: loc, children: [], parent: nil) if @attributes == nil
+    tag = OpenStruct.new(tag: match[0], contents: match[0], index: loc, children: [], parent: nil) if @attributes == nil
     tag
   end
 
@@ -73,7 +73,7 @@ class HTMLParser
       if attributes[0] == "class"
         attributes[0] = attributes[0] << "_attribute"
       end
-      tag = OpenStruct.new(tag: "<" + type + ">", content: tag, index: loc, attributes[0] => attributes[1], children: [], parent: nil)
+      tag = OpenStruct.new(tag: "<" + type + ">", contents: tag, index: loc, attributes[0] => attributes[1], children: [], parent: nil)
       tag
   end
 
